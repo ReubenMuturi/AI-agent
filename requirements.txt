@@ -1,0 +1,9 @@
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
+openai
+tiktoken
+youtube-transcript-api
+requests
+beautifulsoup4
