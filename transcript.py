@@ -1,3 +1,8 @@
+# example inputs
+# 1 - https://www.youtube.com/watch?v=rCPXBkeBWCQ
+# 2 - https://en.wikipedia.org/wiki/Artificial_intelligence
+
+
 import os
 import openai
 import tiktoken  # For accurate token counting
