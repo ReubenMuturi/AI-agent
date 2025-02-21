@@ -113,10 +113,10 @@ def create_google_doc(title, content):
         service.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute()
 
         doc_url = f"https://docs.google.com/document/d/{doc_id}"
-        logging.info(f"✅ Google Doc created successfully: {doc_url}")
+        logging.info(f" Google Doc created successfully: {doc_url}")
         return doc_id
     except Exception as e:
-        logging.error(f"❌ Failed to create Google Doc: {e}")
+        logging.error(f" Failed to create Google Doc: {e}")
         return None
 
 # Load API Key securely
@@ -227,8 +227,8 @@ print(generate_text("Write a blog introduction on AI automation."))
 
 def main():
     print("Choose an option:")
-    print("1️⃣ Process a YouTube transcript")
-    print("2️⃣ Scrape a website and summarize")
+    print(" Process a YouTube transcript")
+    print(" Scrape a website and summarize")
     
     choice = input("Enter 1 or 2: ").strip().lower()
 
@@ -264,21 +264,21 @@ def main():
     elif choice == "2":
         url = input("Enter the URL to scrape: ").strip()
         
-        print("\n🔄 Scraping website...")
+        print("\n Scraping website...")
         scraped_content = scrape_website(url)
         
         if "Error" in scraped_content:
             print(scraped_content)
             return
 
-        print("\n📝 Generating summary...")
+        print("\n Generating summary...")
         summary = summarize_content(scraped_content)
 
-        print("\n✅ Summary:\n")
+        print("\n Summary:\n")
         print(summary)
 
     else:
-        print("❌ Invalid choice. Please enter 1 or 2.")
+        print(" Invalid choice. Please enter 1 or 2.")
 
 if __name__ == "__main__":
     main()
