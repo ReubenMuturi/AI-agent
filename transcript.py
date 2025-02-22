@@ -5,8 +5,8 @@
 
 import os
 import openai
-import tiktoken  # For accurate token counting
 import logging
+import time
 from youtube_transcript_api import YouTubeTranscriptApi
 from urllib.parse import urlparse, parse_qs
 from googleapiclient.discovery import build
@@ -19,6 +19,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_CREDENTIALS_PATH")
 SCOPES = ["https://www.googleapis.com/auth/documents", "https://www.googleapis.com/auth/drive"]
 TOKEN_LIMIT = 2048
+OPENAI_TPM_LIMIT = 10000  # Adjust based on your API plan
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -41,44 +42,49 @@ def create_google_doc(title, content):
     try:
         service = build("docs", "v1", credentials=credentials)
         drive_service = build("drive", "v3", credentials=credentials)
-        
+
         # Create document
         doc = service.documents().create(body={"title": title}).execute()
         doc_id = doc.get("documentId")
-        
-        # Insert content
-        requests = [{"insertText": {"location": {"index": 1}, "text": content}}]
+
+        # Insert content in chunks (Google Docs API limits requests)
+        batch_size = 2000  # Characters per batch
+        requests = [{"insertText": {"location": {"index": 1}, "text": content[i:i+batch_size]}} 
+                    for i in range(0, len(content), batch_size)]
         service.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute()
-        
+
         # Set document permissions (make public)
-        permission = {
-            "type": "anyone",
-            "role": "reader"
-        }
-        drive_service.permissions().create(
-            fileId=doc_id,
-            body=permission,
-            fields="id"
-        ).execute()
+        permission = {"type": "anyone", "role": "reader"}
+        drive_service.permissions().create(fileId=doc_id, body=permission, fields="id").execute()
 
         return f"https://docs.google.com/document/d/{doc_id}"
     except Exception as e:
         logging.error(f"Failed to create Google Doc: {e}")
         return None
 
-def summarize_content(content):
-    """Summarize text content using OpenAI."""
+def summarize_content(content, max_tokens=500):
+    """Summarize text content using OpenAI with rate limit handling."""
     if not content.strip():
         return "No content provided."
+
     try:
         client = openai.OpenAI(api_key=OPENAI_API_KEY)
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "system", "content": "Summarize the following content:"},
-                      {"role": "user", "content": content}],
-            max_tokens=300
-        )
-        return response.choices[0].message.content.strip()
+        messages = [{"role": "system", "content": "Summarize the following content:"},
+                    {"role": "user", "content": content}]
+
+        while True:
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=messages,
+                    max_tokens=max_tokens
+                )
+                return response.choices[0].message.content.strip()
+            except openai.RateLimitError as e:
+                logging.warning("Rate limit exceeded. Waiting before retrying...")
+                time.sleep(60)  # Wait and retry
+            except Exception as e:
+                return f"Error: {e}"
     except Exception as e:
         return f"Error: {e}"
 
@@ -90,7 +96,9 @@ def scrape_website(url):
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
         paragraphs = soup.find_all("p")
-        return "\n".join(p.get_text() for p in paragraphs if p.get_text()) or "No content found."
+        extracted_text = "\n".join(p.get_text() for p in paragraphs if p.get_text())
+
+        return extracted_text[:TOKEN_LIMIT] if extracted_text else "No content found."
     except requests.exceptions.RequestException as e:
         return f"Error scraping website: {e}"
 
@@ -101,28 +109,38 @@ def extract_video_id(video_url):
     return video_id[0] if video_id else parsed_url.path.split("/")[-1] if "/shorts/" in parsed_url.path else None
 
 def get_youtube_transcript(video_url):
-    """Fetch and truncate YouTube transcript if needed."""
+    """Fetch YouTube transcript and truncate if needed."""
     video_id = extract_video_id(video_url)
     if not video_id:
         return None
     try:
         transcript = YouTubeTranscriptApi.get_transcript(video_id)
         transcript_text = "\n".join(entry['text'] for entry in transcript)
-        return transcript_text[:TOKEN_LIMIT]  # Truncate if needed
+        return transcript_text[:TOKEN_LIMIT]  # Truncate to avoid long input
     except Exception as e:
         logging.error(f"Failed to fetch transcript: {e}")
         return None
 
-def generate_text(prompt, model="gpt-3.5-turbo", max_tokens=1000):
-    """Generate AI text from a given prompt."""
+def generate_text(prompt, model="gpt-4", max_tokens=800):
+    """Generate AI text from a given prompt with rate limit handling."""
     try:
         client = openai.OpenAI(api_key=OPENAI_API_KEY)
-        response = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=max_tokens
-        )
-        return response.choices[0].message.content.strip()
+        messages = [{"role": "user", "content": prompt}]
+
+        while True:
+            try:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    max_tokens=max_tokens
+                )
+                return response.choices[0].message.content.strip()
+            except openai.RateLimitError:
+                logging.warning("Rate limit exceeded. Waiting before retrying...")
+                time.sleep(60)  # Wait and retry
+            except Exception as e:
+                logging.error(f"AI Text Generation Failed: {e}")
+                return None
     except Exception as e:
         logging.error(f"AI Text Generation Failed: {e}")
         return None
@@ -130,9 +148,10 @@ def generate_text(prompt, model="gpt-3.5-turbo", max_tokens=1000):
 def main():
     """Main function to process user choice."""
     print("Choose an option:")
-    print("Process a YouTube transcript")
-    print("Scrape a website and summarize")
+    print("1. Process a YouTube transcript")
+    print("2. Scrape a website and summarize")
     choice = input("Enter 1 or 2: ").strip()
+    
     if choice == "1":
         video_url = input("Enter YouTube video URL: ").strip()
         transcript = get_youtube_transcript(video_url)
