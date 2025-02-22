@@ -130,8 +130,8 @@ def generate_text(prompt, model="gpt-3.5-turbo", max_tokens=1000):
 def main():
     """Main function to process user choice."""
     print("Choose an option:")
-    print("1️⃣ Process a YouTube transcript")
-    print("2️⃣ Scrape a website and summarize")
+    print("Process a YouTube transcript")
+    print("Scrape a website and summarize")
     choice = input("Enter 1 or 2: ").strip()
     if choice == "1":
         video_url = input("Enter YouTube video URL: ").strip()
