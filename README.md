@@ -33,12 +33,12 @@ pip install openai google-auth google-auth-oauthlib google-auth-httplib2 google-
    ```
 
 3. **Choose an Option**
-   - Enter `1` to process a YouTube transcript. (example URL- https://www.youtube.com/watch?v=rCPXBkeBWCQ)
-   - Enter `2` to scrape and summarize a website.  (eg URL- https://en.wikipedia.org/wiki/Artificial_intelligence)
-
+   - Enter `1` to process a YouTube transcript. 
+   - Enter `2` to scrape and summarize a website.  
 4. **Provide Input**
-   - For YouTube: Enter the YouTube video URL.
-   - For Website: Enter the webpage URL.
+   - For YouTube: Enter the YouTube video URL. (example URL- https://www.youtube.com/watch?v=rCPXBkeBWCQ)
+   - For Website: Enter the webpage URL.   (example URL- https://en.wikipedia.org/wiki/Artificial_intelligence)
+
 
 5. **View Summary**
    - The script will generate a summary and create a Google Docs file.
