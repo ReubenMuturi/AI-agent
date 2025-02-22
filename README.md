@@ -1,4 +1,4 @@
-<!-- # YouTube Transcript & Web Scraper
+ <!-- # YouTube Transcript & Web Scraper
 
 This script extracts transcripts from YouTube videos or scrapes text content from a website, summarizes the extracted content using OpenAI's API, and saves it to a Google Docs file with public read access.
 
@@ -33,8 +33,8 @@ pip install openai google-auth google-auth-oauthlib google-auth-httplib2 google-
    ```
 
 3. **Choose an Option**
-   - Enter `1` to process a YouTube transcript.
-   - Enter `2` to scrape and summarize a website.
+   - Enter `1` to process a YouTube transcript. (example URL- https://www.youtube.com/watch?v=rCPXBkeBWCQ)
+   - Enter `2` to scrape and summarize a website.  (eg URL- https://en.wikipedia.org/wiki/Artificial_intelligence)
 
 4. **Provide Input**
    - For YouTube: Enter the YouTube video URL.
